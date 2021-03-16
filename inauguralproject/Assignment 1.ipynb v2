@@ -1,0 +1,584 @@
+{
+ "cells": [
+  {
+   "cell_type": "markdown",
+   "id": "historic-christmas",
+   "metadata": {},
+   "source": [
+    "# Inaugural Project - Housing demand and taxation\n",
+    "### Introduction to Programming and Numerical Analysis\n",
+    "\n",
+    "**University of Copenhagen, 21 March 2021**\n",
+    "\n",
+    "Hand-in by Magnus Bugge, Jens Brøndum Petersen, and Frederik Bach\n",
+    "\n",
+    "# Housing demand and taxation\n",
+    "\n",
+    "We consider a household looking to buy a home. The household is endowed with an amount of cash-on-hand, $m$, that may spent on housing as well as other consumption $c$. The household derives utility from housing by a measure of its quality, $h$. A home of quality $h$ has the price $ph$ and is subject to progressive taxation and mortgage costs, summarized by the function $\\tau(\\cdot)$. The objective of the household is therefore to choose optimal amounts of housing and consumption.\n",
+    "\n",
+    "# Problem 1 - Household utility maximization \n",
+    "\n",
+    "The representative household's problem is given by:\n",
+    "\n",
+    "$$c^*, h^* = \\arg \\underset{c,h}{\\max} c^{1-\\phi}h^\\phi \\\\\n",
+    "                s.t. \\\\\n",
+    "    \\tilde{p}_h = p_h\\varepsilon \\\\\n",
+    "              m = \\tau(p_h,\\tilde{p}_h)+c \\\\\n",
+    "\\tau(p_h,\\tilde{p}_h = rp_h+\\tau^h\\tilde{p}_h+\\tau^p\\max\\{\\tilde{p}_h-\\bar{p},0\\}$$ "
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "herbal-circuit",
+   "metadata": {},
+   "source": [
+    "We take as given the default parameters: \n",
+    "$\\phi = 0.3, \\varepsilon = 0.5, r = 0.03, \\tau^g = 0.012, \\tau^g = 0.004, \n",
+    "\\bar{p} = 3$\n",
+    "\n",
+    "The parameters are defined in the dictionary 'parameters' in the code section below."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 2,
+   "id": "integral-preservation",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# import numpy for array operations and the scipy optimize module for optimization\n",
+    "import numpy as np\n",
+    "from scipy import optimize\n",
+    "\n",
+    "# create a dictionary containing the parameters given\n",
+    "parameters = {'phi': 0.3, 'eps': 0.5, 'r': 0.03, 'tau_g': 0.012, \n",
+    "              'tau_p': 0.004, 'p_bar': 3, 'm': 0.5}"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "partial-renaissance",
+   "metadata": {},
+   "source": [
+    "Now, we construct the utility function along with the maximization constraints as individual functions:"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 3,
+   "id": "likely-category",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "def utility_function(c, h, parameters):\n",
+    "    \"\"\" Defines utility function based on consumption bundle and parameters        \n",
+    "    \n",
+    "    Args:\n",
+    "        c (float): amount of consumption in non-housing goods \n",
+    "        h (float): housing consumption\n",
+    "        parameters (dict): dictionary of parameters wrt. policy and preferences\n",
+    "        \n",
+    "    Returns:\n",
+    "        u (float): utility        \n",
+    "    \"\"\"\n",
+    "\n",
+    "    u = c**(1-parameters['phi']) * h**parameters['phi']\n",
+    "    return u\n",
+    "\n",
+    "\n",
+    "def taxes_paid(h, parameters):\n",
+    "    \"\"\" Calculates the cash amount of taxes paid by the individual household given the choice of house quality      \n",
+    "    \n",
+    "    Args:\n",
+    "        h (float): housing consumption\n",
+    "        parameters (dict): dictionary of parameters wrt. policy and preferences\n",
+    "        \n",
+    "    Returns:\n",
+    "        taxes (float): cash amount of taxes paid\n",
+    "    \"\"\"\n",
+    "    \n",
+    "    taxes = parameters['r'] * h + parameters['tau_g'] * h * parameters['eps'] + parameters['tau_p'] * max(h * parameters['eps'] - parameters['p_bar'], 0)\n",
+    "    return taxes\n",
+    "    \n",
+    "    \n",
+    "def budget_constraint(h, parameters):\n",
+    "    \"\"\" Defines the budget constraint of the household, which says that consumption is equal to the cash-on-hand minus tax expenditure   \n",
+    "    \n",
+    "    Args:\n",
+    "        h (float): housing consumption\n",
+    "        parameters (dict): dictionary of parameters wrt. policy and preferences\n",
+    "        \n",
+    "    Returns:\n",
+    "        c (float): the upper limit (budget constraint) for consumption in non-housing goods\n",
+    "    \"\"\" \n",
+    "    \n",
+    "    c = parameters['m'] - taxes_paid(h, parameters)\n",
+    "    return c"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "bizarre-throat",
+   "metadata": {},
+   "source": [
+    "Now, we define the objective function and maximize it wrt. c and h"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 4,
+   "id": "spare-windows",
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "4.1666666039527485\n",
+      "0.35000000225770106\n",
+      "0.7358414678061572\n"
+     ]
+    }
+   ],
+   "source": [
+    "# objective function (we maximize it by minimizing the negative utility function)\n",
+    "def value_of_choice(h, parameters):\n",
+    "    \"\"\" Defines the objective function to be optimized\n",
+    "    \n",
+    "    Args:\n",
+    "        h (float): housing consumption\n",
+    "        parameters (dict): dictionary of parameters wrt. policy and preferences\n",
+    "        \n",
+    "    Returns:\n",
+    "        -utility_function (float): the negative of the implied utility from consumption c and h\n",
+    "    \"\"\" \n",
+    "\n",
+    "    c = budget_constraint(h, parameters)\n",
+    "    return -utility_function(c, h, parameters)\n",
+    "\n",
+    "\n",
+    "# use the optimizer from the scipy package to optimize value_of_choice\n",
+    "def solver(parameters):\n",
+    "    \"\"\" Solves the household's utility maximization problem given the parameters\n",
+    "    Args:\n",
+    "        parameters (dict): dictionary of parameters wrt. policy and preferences\n",
+    "        \n",
+    "    Returns:\n",
+    "        -h (float): optimal choice of housing\n",
+    "    \"\"\" \n",
+    "    solution = optimize.minimize_scalar(\n",
+    "    value_of_choice, bounds = None, args = (parameters))\n",
+    "    h = solution.x\n",
+    "    return h\n",
+    "\n",
+    "# save the optimal consumption bundle and the implied utility the variables h, c, and u\n",
+    "h = solver(parameters)\n",
+    "c = budget_constraint(h, parameters)\n",
+    "u = utility_function(c, h, parameters)\n",
+    "\n",
+    "# print the solution\n",
+    "print(h)\n",
+    "print(c)\n",
+    "print(u)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "south-board",
+   "metadata": {},
+   "source": [
+    "# Problem 2 - Plot of c* and h* as functions of m in the range 0.4 to 1.5"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 5,
+   "id": "valued-auditor",
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "        m          h       c\n",
+      "0    0.40   3.333333  0.2800\n",
+      "1    0.41   3.416667  0.2870\n",
+      "2    0.42   3.500000  0.2940\n",
+      "3    0.43   3.583333  0.3010\n",
+      "4    0.44   3.666667  0.3080\n",
+      "..    ...        ...     ...\n",
+      "105  1.45  11.542105  1.0234\n",
+      "106  1.46  11.621053  1.0304\n",
+      "107  1.47  11.700000  1.0374\n",
+      "108  1.48  11.778948  1.0444\n",
+      "109  1.49  11.857895  1.0514\n",
+      "\n",
+      "[110 rows x 3 columns]\n"
+     ]
+    }
+   ],
+   "source": [
+    "# import the pandas package for dataframe\n",
+    "import pandas as pd\n",
+    "\n",
+    "# define a range of endowments, m, to be iterated over\n",
+    "m_range = np.arange(0.4, 1.5, 0.01).tolist()\n",
+    "\n",
+    "# initialize an empty array\n",
+    "solutions = []\n",
+    "\n",
+    "# use the optimization algorithm from problem 1 for all m's in m_range\n",
+    "for m in m_range:\n",
+    "    parameters['m'] = m\n",
+    "    h = solver(parameters)\n",
+    "    c = budget_constraint(h, parameters)\n",
+    "    solutions.append([m, h, c])\n",
+    "\n",
+    "# save the solutions in a pandas dataframe and print it\n",
+    "solutions = pd.DataFrame(solutions, columns=[\"m\", \"h\", \"c\"])\n",
+    "print(solutions)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "descending-hammer",
+   "metadata": {},
+   "source": [
+    "Now, after obtaining a dataframe of 110 solutions to the household's problem, we plot it using the matplotlib package"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 6,
+   "id": "consolidated-familiar",
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "image/png": "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\n",
+      "text/plain": [
+       "<Figure size 432x288 with 1 Axes>"
+      ]
+     },
+     "metadata": {
+      "needs_background": "light"
+     },
+     "output_type": "display_data"
+    }
+   ],
+   "source": [
+    "# import the matplotlib pyplot module package for the plot\n",
+    "import matplotlib.pyplot as plt\n",
+    "\n",
+    "# plot the solution dataframe\n",
+    "m_axis = plt.gca()\n",
+    "solutions.plot(x = 'm', y = 'h', ax = m_axis, title = 'Figure 1: Optimal consumption bundles');\n",
+    "solutions.plot(x = 'm', y = 'c', ax = m_axis, color = 'red');"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "coordinated-windows",
+   "metadata": {},
+   "source": [
+    "From figure 1, we see that the consumption bundle is increasing in both goods for increasing endowments, which is a result of the monotonous utility function.\n",
+    "\n",
+    "What is interesting here is that around the endowment m = 0.72, the households begin buying houses that are taxed in the higher tax bracket. Initially,\n",
+    "\n",
+    "this causes the households to being reluctant on buying more expensive houses, since the marginal utility on consumption is higher. However, when the \n",
+    "\n",
+    "endowment reaches a certain point, the households again begin buying more and more expensive houses."
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "married-clothing",
+   "metadata": {},
+   "source": [
+    "# Problem 3 - Average tax burden\n",
+    "\n",
+    "Here, we calculate the average tax burden among 10,000 households assuming that cash endowments follow a log-normal distribution."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 7,
+   "id": "blocked-ozone",
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "0.03632680342490658\n"
+     ]
+    }
+   ],
+   "source": [
+    "# set the number of households and the seed number\n",
+    "N = 10000\n",
+    "seed = 1\n",
+    "\n",
+    "# draw list of 10,000 cash endowments from the lognormal distributions\n",
+    "from statistics import mean\n",
+    "np.random.seed(seed)\n",
+    "m_sim = np.random.lognormal(mean = -0.4,sigma = 0.35,size = N).tolist()\n",
+    "\n",
+    "def tax_burden(h, parameters):\n",
+    "    '''calculate the individual tax burden given the choice of housing'''\n",
+    "    return parameters['tau_g'] * h * parameters['eps'] + parameters['tau_p'] * max(h * parameters['eps'] - parameters['p_bar'], 0)\n",
+    "\n",
+    "# calculate the average tax burden\n",
+    "household_tax = []\n",
+    "for m in m_sim:\n",
+    "    parameters['m'] = m\n",
+    "    h = solver(parameters)\n",
+    "    household_tax.append(tax_burden(h, parameters)) \n",
+    "\n",
+    "avg_tax_burden = mean(household_tax)\n",
+    "print(avg_tax_burden)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "partial-quilt",
+   "metadata": {},
+   "source": [
+    "Now, we plot the distributions of h and c given the simulations of the cash endowment."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 8,
+   "id": "pointed-teaching",
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/plain": [
+       "<seaborn.axisgrid.FacetGrid at 0x7ff911b93790>"
+      ]
+     },
+     "execution_count": 8,
+     "metadata": {},
+     "output_type": "execute_result"
+    },
+    {
+     "data": {
+      "image/png": "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\n",
+      "text/plain": [
+       "<Figure size 360x360 with 1 Axes>"
+      ]
+     },
+     "metadata": {
+      "needs_background": "light"
+     },
+     "output_type": "display_data"
+    },
+    {
+     "data": {
+      "image/png": "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\n",
+      "text/plain": [
+       "<Figure size 360x360 with 1 Axes>"
+      ]
+     },
+     "metadata": {
+      "needs_background": "light"
+     },
+     "output_type": "display_data"
+    }
+   ],
+   "source": [
+    "# Plot of distributions\n",
+    "import seaborn as sns\n",
+    "\n",
+    "solutions = []\n",
+    "\n",
+    "for m in m_sim:\n",
+    "    parameters['m'] = m\n",
+    "    h = solver(parameters)\n",
+    "    c = budget_constraint(h, parameters)\n",
+    "    solutions.append([m, h, c])\n",
+    "\n",
+    "solutions = pd.DataFrame(solutions, columns=[\"m\", \"h\", \"c\"])\n",
+    "\n",
+    "sns.displot(solutions, x=\"h\")\n",
+    "sns.displot(solutions, x=\"c\")"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "designed-blackberry",
+   "metadata": {},
+   "source": [
+    "What is interesting from the plots above is the skewness of the distributions. This seems to be due to the tax schedule which has two tax brackets. That is, households \n",
+    "\n",
+    "are taxes differently depending on the public assessment of their house. As we also saw in problem 2, households stop buying more expensive houses when reaching the\n",
+    "\n",
+    "endowment region of rougly m = 0.72. Therefore, there is an outlier of households who buy houses of the approximate value of h = 6."
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "wrapped-statement",
+   "metadata": {},
+   "source": [
+    "# Problem 4 - Tax reform\n",
+    "\n",
+    "Now, the government imposes a tax reform which alternates some of the given parameters. We implement the new parameters by creating a new dictionary."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 10,
+   "id": "located-revolution",
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "0.045036293136158256\n"
+     ]
+    }
+   ],
+   "source": [
+    "# Create a dictionary containing the new parameters\n",
+    "parameters_reform = {'phi': 0.3, 'eps': 0.8, 'r': 0.03, 'tau_g': 0.01, \n",
+    "              'tau_p': 0.009, 'p_bar': 8, 'm': 0.5}\n",
+    "\n",
+    "household_tax_reform = []\n",
+    "for m in m_sim:\n",
+    "    parameters_reform['m'] = m\n",
+    "    h = solver(parameters_reform)\n",
+    "    household_tax_reform.append(tax_burden(h, parameters_reform)) \n",
+    "\n",
+    "print(mean(household_tax_reform))"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "whole-expense",
+   "metadata": {},
+   "source": [
+    "We see from t_reform that the average tax burden has increased from 0.036 to 0.045."
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "other-pricing",
+   "metadata": {},
+   "source": [
+    "# Problem 5 - re-engineering the tax reform\n",
+    "\n",
+    "Now, the government wants to re-engineer the tax reform, such that the average tax burden is unchanged between the tax schedules. They want to do this by imposing the new parameters, while lowering $\\tau_g$, so the tax effects are offset. "
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 18,
+   "id": "south-restoration",
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "With tau_g = 0.000000, the tax burden is 0.000695.\n",
+      "With tau_g = 0.001000, the tax burden is 0.006047.\n",
+      "With tau_g = 0.002000, the tax burden is 0.011166.\n",
+      "With tau_g = 0.003000, the tax burden is 0.016062.\n",
+      "With tau_g = 0.004000, the tax burden is 0.020750.\n",
+      "With tau_g = 0.005000, the tax burden is 0.025239.\n",
+      "With tau_g = 0.006000, the tax burden is 0.029539.\n",
+      "With tau_g = 0.007000, the tax burden is 0.033659.\n",
+      "With tau_g = 0.008000, the tax burden is 0.037609.\n",
+      "With tau_g = 0.009000, the tax burden is 0.041399.\n"
+     ]
+    },
+    {
+     "ename": "KeyboardInterrupt",
+     "evalue": "",
+     "output_type": "error",
+     "traceback": [
+      "\u001b[0;31m---------------------------------------------------------------------------\u001b[0m",
+      "\u001b[0;31mKeyboardInterrupt\u001b[0m                         Traceback (most recent call last)",
+      "\u001b[0;32m<ipython-input-18-86d81bff7c12>\u001b[0m in \u001b[0;36m<module>\u001b[0;34m\u001b[0m\n\u001b[1;32m     16\u001b[0m             \u001b[0mparameters_reform_new\u001b[0m\u001b[0;34m[\u001b[0m\u001b[0;34m'm'\u001b[0m\u001b[0;34m]\u001b[0m \u001b[0;34m=\u001b[0m \u001b[0mm\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[1;32m     17\u001b[0m             \u001b[0mh\u001b[0m \u001b[0;34m=\u001b[0m \u001b[0msolver\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0mparameters_reform_new\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[0;32m---> 18\u001b[0;31m             \u001b[0mhousehold_tax_reform\u001b[0m\u001b[0;34m.\u001b[0m\u001b[0mappend\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0mtax_burden\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0mh\u001b[0m\u001b[0;34m,\u001b[0m \u001b[0mparameters_reform_new\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[0m\u001b[1;32m     19\u001b[0m \u001b[0;34m\u001b[0m\u001b[0m\n\u001b[1;32m     20\u001b[0m         \u001b[0mavg_tax_burden_reform\u001b[0m \u001b[0;34m=\u001b[0m \u001b[0mmean\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0mhousehold_tax_reform\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n",
+      "\u001b[0;31mKeyboardInterrupt\u001b[0m: "
+     ]
+    }
+   ],
+   "source": [
+    "parameters_reform_new = {'phi': 0.3, 'eps': 0.8, 'r': 0.03, 'tau_g': 0.01, \n",
+    "              'tau_p': 0.009, 'p_bar': 8, 'm': 0.5}\n",
+    "\n",
+    "tau_g_iter = np.arange(0, 0.019, 0.001).tolist()\n",
+    "\n",
+    "# define tolerance \n",
+    "tol = 0.00001\n",
+    "avg_tax_burden_reform = 0 \n",
+    "\n",
+    "while avg_tax_burden_reform < avg_tax_burden:\n",
+    "    for tau_g in tau_g_iter:\n",
+    "        parameters_reform_new['tau_g'] = tau_g\n",
+    "        household_tax_reform = []\n",
+    "\n",
+    "        for m in m_sim:\n",
+    "            parameters_reform_new['m'] = m\n",
+    "            h = solver(parameters_reform_new)\n",
+    "            household_tax_reform.append(tax_burden(h, parameters_reform_new))\n",
+    "    \n",
+    "        avg_tax_burden_reform = mean(household_tax_reform)\n",
+    "        print(f'With tau_g = {tau_g:4f}, the tax burden is {avg_tax_burden_reform:4f}.')"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 36,
+   "id": "choice-staff",
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "0.033164658752543534\n"
+     ]
+    }
+   ],
+   "source": [
+    "print(dif)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "sufficient-blend",
+   "metadata": {},
+   "source": [
+    "Thus, for $\\tau_g=0.018$, the government obtains an unchanged average tax burden under the new tax schedule."
+   ]
+  }
+ ],
+ "metadata": {
+  "kernelspec": {
+   "display_name": "Python 3",
+   "language": "python",
+   "name": "python3"
+  },
+  "language_info": {
+   "codemirror_mode": {
+    "name": "ipython",
+    "version": 3
+   },
+   "file_extension": ".py",
+   "mimetype": "text/x-python",
+   "name": "python",
+   "nbconvert_exporter": "python",
+   "pygments_lexer": "ipython3",
+   "version": "3.8.5"
+  },
+  "toc-autonumbering": true
+ },
+ "nbformat": 4,
+ "nbformat_minor": 5
+}
