@@ -1,6 +1,6 @@
 # Data analysis project
 
-Our project is titled **Danish Labour hoarding during Covid-19** and seeks to answer to which degree labour hoarding was present on the Danish labour market during the first Covid-19 in 2020. The analysis investigates gross unemployment in different industries and compares the development of these, in combination with the development in Covid-19.
+Our project is titled **Danish Labour hoarding during Covid-19** and seeks to answer to which degree labour hoarding was present on the Danish labour market during the first wave of Covid-19 in 2020. The analysis investigates gross unemployment in different industries and compares the development of these, in combination with the development in Covid-19.
 
 The **results** of the project can be seen from running [dataproject.ipynb](dataproject.ipynb).
 
