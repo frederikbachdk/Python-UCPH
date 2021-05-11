@@ -2,7 +2,7 @@
 
 Our project is titled **Markowitz' Portfolio Selection & Extensions** which is a static model of an investor seeking to maximize expected risk-weighted returns given a known distribution of returns and a given degree of risk aversion.
 
-The **results** of the project can be seen from running [Model project.ipynb](Model project.ipynb).
+The **results** of the project can be seen from running [modelproject.ipynb](modelproject.ipynb).
 
 This project **does not load any datasets**, but works with the **Yahoo! Finance API** in order to get historical return data from the Dow Jones Index. 
 
