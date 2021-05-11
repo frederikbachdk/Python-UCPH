@@ -1,6 +1,6 @@
 # Model project
 
-Our project is titled **Markowitz' Portfolio Selection & Extensions** which is a static model of an investor seeking to maximize expected risk-weighted returns given a known distribution of returns and a given degree of risk aversion.
+Our project is titled **Markowitz' Portfolio Selection & Extensions** which is a static model of an investor seeking to maximize expected risk-weighted returns given a known distribution of returns and a given degree of risk aversion. The project shows how the risk aversion affects the optimal weighting of risk and return, and lastly we extend the model to show how the dynamics of time changes the performance of the portfolio over time.
 
 The **results** of the project can be seen from running [modelproject.ipynb](modelproject.ipynb).
 
